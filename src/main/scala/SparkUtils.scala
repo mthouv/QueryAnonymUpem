@@ -9,7 +9,6 @@ import org.apache.jena.sparql.syntax.ElementWalker
 
 import scala.collection.mutable.ListBuffer
 
-
 object SparkRunner extends App {
   val conf = new SparkConf().setAppName("simpleSparkApp").setMaster("local")
   val sc = new SparkContext(conf)
@@ -26,7 +25,10 @@ object SparkRunner extends App {
   val query : Query = QueryFactory.create(queryStr)
   //query.setPrefix("xsd", "<http://www.w3.org/2001/XMLSchema#>")
 
+
   println(queryStr)
+
+
 
   val op : Op = Algebra.compile(query)
   //println(op)
@@ -39,9 +41,7 @@ object SparkRunner extends App {
   })
   */
 
-  val subjects = ListBuffer[TriplePath]()
-
-  println("###############")
+  val subjects = ListBuffer[Node]()
 
   // This will walk through all parts of the query
   ElementWalker.walk(query.getQueryPattern, new ElementVisitorBase() { // ...when it's a block of triples...
@@ -50,17 +50,73 @@ object SparkRunner extends App {
       while ( {
         triples.hasNext
       }) { // ...and grab the subject
-        val triple : TriplePath = triples.next
-
-        val sub : Node = triple.getSubject
-        val predicate : Node = triple.getPredicate
-        val obj : Node = triple.getObject
-
-
-        println(sub + " " + predicate + " " + obj)
-        //subjects.prepend(triples.next)
+        subjects.prepend(triples.next.getPredicate)
       }
     }
   })
+
+  println("###############")
+
   //subjects.foreach(println(_))
+
+
+  val queryP1Str = "PREFIX vcard: <http://www.w3.org/2001/vcard-rdf/3.0#>\nPREFIX tcl: <http://example.com>\nSELECT ?ad\nWHERE {\n\t?u\ta\ttcl:User.\n\t?u\tvcard:hasAddress\t?ad.\n}"
+  val queryP2Str = "PREFIX geo: <https://www.w3.org/2003/01/geo/wgs84_pos#>\nPREFIX tcl: <http://example.com>\nSELECT ?u ?lat ?long\nWHERE {\n\t?c\ta\ttcl:Journey.\n\t?c\ttcl:user\t?u.\t\t\t\t\n\t?c\tgeo:latitude ?lat.\n\t?c\tgeo:longitude\t?long.\n}"
+  val queryU1Str = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nPREFIX tcl: <http://example.com>\nSELECT ?u ?age\nWHERE {\n    ?u\ta\ttcl:User.\n    ?u\tfoaf:age\t?age.\n}"
+  val queryU2Str = "PREFIX geo: <https://www.w3.org/2003/01/geo/wgs84_pos#>\nPREFIX tcl: <http://example.com>\nSELECT ?c ?lat ?long\nWHERE {\n\t?c\ta\ttcl:Journey.\t\t\n\t?c\tgeo:latitude ?lat.\n\t?c\tgeo:longitude\t?long.\n}"
+
+  val privacyPolicies : List[Query] = List(
+    QueryFactory.create(queryP1Str),
+    QueryFactory.create(queryP2Str)
+  )
+
+  val utilityPolicies : List[Query] = List(
+    QueryFactory.create(queryU1Str),
+    QueryFactory.create(queryU2Str)
+  )
+
+
+  def Algo1(unitaryPrivacy: Query, utilityPolicy: Query) : List[String] = {
+    val result = ListBuffer[TriplePath]()
+    val unitaryPrivacyTriples = getTriples(unitaryPrivacy)
+    val utilityPolicyTriples = getTriples(utilityPolicy)
+    var c = true;
+    unitaryPrivacyTriples.foreach((queryPath) => if (utilityPolicyTriples.contains(queryPath)) {
+      c = false; println(queryPath);
+    })
+    return null
+  }
+
+  //TODO
+  def presentInUtility(unitaryPrivacyPolicy : TriplePath, utilityPolicy : List[TriplePath]) : Boolean = {
+    return false
+  }
+
+  def getTriples(query: Query) : ListBuffer[TriplePath] =  {
+    val res = ListBuffer[TriplePath]()
+    ElementWalker.walk(query.getQueryPattern, new ElementVisitorBase() { // ...when it's a block of triples...
+      override def visit(el: ElementPathBlock): Unit = { // ...go through all the triples...
+        val triples = el.patternElts
+        while ( {
+          triples.hasNext
+        }) { // ...and grab the subject
+          res.prepend(triples.next)
+        }
+      }
+    })
+
+    return res
+  }
+
+
+
+  val l = getTriples(privacyPolicies.head)
+
+  l.foreach(println(_))
+
+  println("***************************")
+
+  Algo1(privacyPolicies.head, utilityPolicies.head)
+
 }
+
