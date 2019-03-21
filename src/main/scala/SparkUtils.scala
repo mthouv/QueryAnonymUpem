@@ -80,16 +80,18 @@ object SparkRunner extends App {
     val result = ListBuffer[TriplePath]()
     val unitaryPrivacyTriples = getTriples(unitaryPrivacy)
     val utilityPolicyTriples = getTriples(utilityPolicy)
-    var c = true;
-    unitaryPrivacyTriples.foreach((queryPath) => if (utilityPolicyTriples.contains(queryPath)) {
-      c = false; println(queryPath);
-    })
-    return null
+    if(!presentInUtility(unitaryPrivacyTriples, utilityPolicyTriples))
+      return null
+    //TODO
+    return null;
   }
 
-  //TODO
-  def presentInUtility(unitaryPrivacyPolicy : TriplePath, utilityPolicy : List[TriplePath]) : Boolean = {
-    return false
+  def presentInUtility(unitaryPrivacyPolicy : ListBuffer[TriplePath], utilityPolicy : ListBuffer[TriplePath]) : Boolean = {
+    var c = true;
+    unitaryPrivacyPolicy.foreach((queryPath) => if (utilityPolicy.contains(queryPath)) {
+      c = false; println(queryPath);
+    })
+    return c;
   }
 
   def getTriples(query: Query) : ListBuffer[TriplePath] =  {
