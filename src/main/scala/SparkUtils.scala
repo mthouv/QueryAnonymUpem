@@ -1,11 +1,12 @@
 import org.apache.jena.graph.Node
 import org.apache.jena.query.{Query, QueryFactory}
-import org.apache.jena.sparql.algebra.{Algebra, Op, OpVisitorBase}
-import org.apache.jena.sparql.core.TriplePath
+import org.apache.jena.sparql.algebra.{Algebra, Op}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.jena.sparql.syntax.ElementPathBlock
 import org.apache.jena.sparql.syntax.ElementVisitorBase
 import org.apache.jena.sparql.syntax.ElementWalker
+import QueryUtils.{Algo1, getTriplesFromPolicy, getTriplesFromQuery}
+import org.apache.jena.sparql.core.TriplePath
 
 import scala.collection.mutable.ListBuffer
 
@@ -23,7 +24,6 @@ object SparkRunner extends App {
                             |}""".stripMargin.replaceAll("\n", " ")
 
   val query : Query = QueryFactory.create(queryStr)
-  //query.setPrefix("xsd", "<http://www.w3.org/2001/XMLSchema#>")
 
 
   println(queryStr)
@@ -41,7 +41,7 @@ object SparkRunner extends App {
   })
   */
 
-  val subjects = ListBuffer[Node]()
+  val subjects = ListBuffer[TriplePath]()
 
   // This will walk through all parts of the query
   ElementWalker.walk(query.getQueryPattern, new ElementVisitorBase() { // ...when it's a block of triples...
@@ -50,7 +50,7 @@ object SparkRunner extends App {
       while ( {
         triples.hasNext
       }) { // ...and grab the subject
-        subjects.prepend(triples.next.getPredicate)
+        subjects.prepend(triples.next)
       }
     }
   })
@@ -76,49 +76,22 @@ object SparkRunner extends App {
   )
 
 
-  def Algo1(unitaryPrivacy: Query, utilityPolicy: Query) : List[String] = {
-    val result = ListBuffer[TriplePath]()
-    val unitaryPrivacyTriples = getTriples(unitaryPrivacy)
-    val utilityPolicyTriples = getTriples(utilityPolicy)
-    if(!presentInUtility(unitaryPrivacyTriples, utilityPolicyTriples))
-      return null
-    //TODO
-    return null;
-  }
-
-  def presentInUtility(unitaryPrivacyPolicy : ListBuffer[TriplePath], utilityPolicy : ListBuffer[TriplePath]) : Boolean = {
-    var c = true;
-    unitaryPrivacyPolicy.foreach((queryPath) => if (utilityPolicy.contains(queryPath)) {
-      c = false; println(queryPath);
-    })
-    return c;
-  }
-
-  def getTriples(query: Query) : ListBuffer[TriplePath] =  {
-    val res = ListBuffer[TriplePath]()
-    ElementWalker.walk(query.getQueryPattern, new ElementVisitorBase() { // ...when it's a block of triples...
-      override def visit(el: ElementPathBlock): Unit = { // ...go through all the triples...
-        val triples = el.patternElts
-        while ( {
-          triples.hasNext
-        }) { // ...and grab the subject
-          res.prepend(triples.next)
-        }
-      }
-    })
-
-    return res
-  }
 
 
-
-  val l = getTriples(privacyPolicies.head)
+  val l = getTriplesFromQuery(privacyPolicies.head)
 
   l.foreach(println(_))
 
   println("***************************")
 
-  Algo1(privacyPolicies.head, utilityPolicies.head)
+  val ope = Algo1(privacyPolicies.head, utilityPolicies)
+  print(ope)
+
+
+  val projVars = query.getProjectVars()
+  val isIn = projVars.contains(subjects(0).getSubject)
+
+  println("\n " + isIn)
 
 }
 
