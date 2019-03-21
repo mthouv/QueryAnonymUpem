@@ -32,27 +32,11 @@ object QueryUtils {
 
 
 
-
-
   def presentInUtility(privacyTriple : TriplePath, utilityTriples : ListBuffer[TriplePath]) : Boolean = {
     return utilityTriples.contains(privacyTriple)
   }
 
 
-
-  def Algo1(unitaryPrivacy: Query, utilityPolicies: List[Query]) : ListBuffer[String] = {
-    val result = ListBuffer[String]()
-    val unitaryPrivacyTriples = getTriplesFromQuery(unitaryPrivacy)
-    val utilityPolicyTriples = getTriplesFromPolicy(utilityPolicies)
-
-    unitaryPrivacyTriples.foreach(triple => {
-      if(!presentInUtility(triple, utilityPolicyTriples)) {
-        result.prepend("Delete " + triple.toString + " WHERE " + unitaryPrivacyTriples.toString())
-      }
-    })
-
-    result
-  }
 
 
   def checkSubject(triple : TriplePath, triplePatterns : ListBuffer[TriplePath]) : Boolean = {
@@ -60,10 +44,36 @@ object QueryUtils {
       pattern => pattern.getSubject == triple.getObject || (pattern.getSubject == triple.getSubject && pattern != triple))
   }
 
-  
+
   def checkObject(triple : TriplePath, triplePatterns : ListBuffer[TriplePath]) : Boolean = {
     return triplePatterns.exists(
       pattern => pattern.getObject == triple.getSubject && (pattern.getObject == triple.getObject && pattern != triple))
+  }
+
+
+
+  //TODO Maybe change return type instead of list of strings
+  def Algo1(unitaryPrivacy: Query, utilityPolicies: List[Query]) : ListBuffer[String] = {
+    val result = ListBuffer[String]()
+    val unitaryPrivacyTriples = getTriplesFromQuery(unitaryPrivacy)
+    val utilityPolicyTriples = getTriplesFromPolicy(utilityPolicies)
+    val projectedVars = unitaryPrivacy.getProjectVars
+
+    unitaryPrivacyTriples.foreach(triple => {
+      if (!presentInUtility(triple, utilityPolicyTriples)) {
+        result.prepend("Delete " + triple.toString + " WHERE " + unitaryPrivacyTriples.toString().replace("ListBuffer", ""))
+
+        if (checkSubject(triple, unitaryPrivacyTriples) || projectedVars.contains(triple.getSubject)) {
+          result.prepend("Delete " + triple.toString + " INSERT {[], " + triple.getPredicate + ", " + triple.getObject + "} WHERE " + unitaryPrivacyTriples.toString().replace("ListBuffer", ""))
+        }
+
+        if (checkObject(triple, unitaryPrivacyTriples) || projectedVars.contains(triple.getObject)) {
+          result.prepend("Delete " + triple.toString +  " INSERT {" + triple.getSubject + ", " + triple.getPredicate + ", []} WHERE " + unitaryPrivacyTriples.toString().replace("ListBuffer", ""))
+        }
+      }
+    })
+
+    result
   }
 
 }

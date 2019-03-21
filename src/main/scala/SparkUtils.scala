@@ -85,13 +85,7 @@ object SparkRunner extends App {
   println("***************************")
 
   val ope = Algo1(privacyPolicies.head, utilityPolicies)
-  print(ope)
 
-
-  val projVars = query.getProjectVars()
-  val isIn = projVars.contains(subjects(0).getSubject)
-
-  println("\n " + isIn)
-
+  ope.foreach(println(_))
 }
 
