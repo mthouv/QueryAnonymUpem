@@ -16,12 +16,10 @@ object Main extends App {
   candidates.foreach(println(_))
 
 
-  println("***************************")
+  println("*************************** General")
 
   val generalCandidates = findCandidatesGeneral(Constants.privacyPolicies, Constants.utilityPoliciesExample)
 
   generalCandidates.foreach(l => l.foreach(println(_)))
-
-
 }
 
