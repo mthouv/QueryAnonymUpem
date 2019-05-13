@@ -1,0 +1,38 @@
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix family: <http://example.org/family#> .
+@prefix data: <http://example.org/data#> .
+
+
+family:Person a rdfs:Class .
+
+family:hasRelative a rdfs:Property ;
+				rdfs:domain family:Person ;
+				rdfs:range family:Person .
+
+
+family:hasChild rdfs:subPropertyOf family:hasRelative ;
+                owl:inverseOf family:hasParent .
+
+
+family:hasParent rdfs:subPropertyOf family:hasRelative ;
+				owl:inverseOf family:hasChild .
+
+
+data:John a family:Person ;
+		  family:hasChild data:Mary ;
+		  foaf:age 18 .
+
+data:Mary a family:Person ;
+		  family:hasChild data:Nicolas;
+		  family:hasChild data:Nathalie.
+
+data:Thomas a family:Person ;
+		  family:hasParent data:Nicolas .
+
+
+
+
+
