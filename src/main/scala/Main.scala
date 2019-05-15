@@ -95,6 +95,16 @@ object Main extends App {
   listAgg.foreach(qs => println(qs.get("sensitiveAttribute") + " -- " + qs.get("count")))
 
 
+  println("----------------------")
 
+  println(createInsertQueryString("pred", 1, 1, listAgg.head))
+
+  println("\n" + createDeleteQueryString("pred", 1))
+
+  println("------------------------------")
+
+  val ll = anatomisationAlgoUnitary("http://example.org/family#hasParent", infModel, 0)
+
+  ll.foreach(x => println(x+ "\n"))
 }
 

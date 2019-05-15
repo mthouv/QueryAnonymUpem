@@ -43,19 +43,22 @@ object Anatomization {
   }
 
 
-  def createDeleteQueryString(tripleQuerySolution : QuerySolution, groupID : Int) : String = {
-    val subject = tripleQuerySolution.get("s")
-    val predicate = tripleQuerySolution.get("p")
-    val obj = tripleQuerySolution.get("o")
+  def createDeleteQueryString(predicate : String, groupID : Int) : String = {
 
-    val URIInGroup = predicate.toString + "/InGroup"
+    val URIInGroup = predicate + "/InGroup"
     val URIGroupId = s"Group${groupID}"
 
+    /*
     val deleteClause = "DELETE { " + subject + " " + predicate + " " + obj + "}"
     val insertClause = "INSERT { " + subject + " " + URIInGroup + " " + URIGroupId + "}"
     val whereClause = "WHERE { " + subject + " " + predicate + " " + obj + "}"
 
     deleteClause + "\n" + insertClause + "\n" + whereClause
+    */
+
+    s"""DELETE { ?s $predicate ?o }
+       |INSERT { ?s $URIInGroup $URIGroupId }
+       |WHERE { ?s $predicate ?o }""".stripMargin
   }
 
 
@@ -63,28 +66,26 @@ object Anatomization {
     val URIGroupID = s"Group${groupID}"
     val URIAttributeID = s"Attribute${attributeID}"
 
-    return s"""INSERT DATA { $URIGroupID $predicate $URIAttributeID .\n"
-    | $URIAttributeID http://anatomisation/value ${aggregationQueryResult.get("sensitiveAttribute")} .\n
-    |  $URIAttributeID http://anatomisation/cardinality " ${aggregationQueryResult.get("count")} ."""".stripMargin
+    s"""INSERT DATA {
+    | $URIGroupID $predicate $URIAttributeID
+    | $URIAttributeID http://anatomisation/value ${aggregationQueryResult.get("sensitiveAttribute")} .
+    | $URIAttributeID http://anatomisation/cardinality " ${aggregationQueryResult.get("count")} .
+    | }""".stripMargin
   }
 
 
-  def anatomisationAlgoUnitary(predicate : String, model : Model) : ListBuffer[String] = {
+  def anatomisationAlgoUnitary(predicate : String, model : Model, groupID : Int) : ListBuffer[String] = {
 
     val ops = ListBuffer[String]()
     val aggQueryResults = execQuery(createAggregationQuery(predicate), model)
 
-    var groupID = 0
     var attributeID = 0
+    ops.append(createDeleteQueryString(predicate, groupID))
     aggQueryResults.foreach(aqr => {
-      val allTriplesQuery = createSelectAllTriplesQuery(predicate, aqr.get("sensitiveAttribute").toString)
-      val triplesResults = execQuery(allTriplesQuery, model)
-
-      triplesResults.foreach(tr => {
-        ops.append(createDeleteQueryString(tr, groupID))
-
-      })
-      groupID += 1
+      //val allTriplesQuery = createSelectAllTriplesQuery(predicate, aqr.get("sensitiveAttribute").toString)
+      //val triplesResults = execQuery(allTriplesQuery, model)
+      ops.append(createInsertQueryString(predicate, groupID, attributeID, aqr))
+      attributeID += 1
     })
     ops
   }
