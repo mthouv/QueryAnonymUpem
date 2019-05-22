@@ -11,24 +11,21 @@ import anatomization.Anatomization._
 
 object Main extends App {
 
-
-  val l = getTriplesFromQuery(Constants.privacyPolicies.head)
-
-  l.foreach(println(_))
-
-  println("***************************")
+  println("***********Query-based Unitary privacy policy****************\n")
 
   val candidates = findCandidatesUnitaryPolicy(Constants.privacyPolicies.head, Constants.utilityPoliciesExample)
   candidates.foreach(println(_))
 
 
-  println("*************************** General")
+  println("\n***********General algorithm with both policies****************")
 
   val generalCandidates = findCandidatesGeneral(Constants.privacyPolicies, Constants.utilityPoliciesExample)
 
   generalCandidates.foreach(l => l.foreach(println(_)))
 
-  println("********************************")
+  println("\n\n***********Anatomisation approach****************")
+  println("***********Predicate is <http://example.org/family#hasParent>****************\n")
+
 
 
   val model : Model = ModelFactory.createOntologyModel()
@@ -42,68 +39,7 @@ object Main extends App {
 
   val infModel : InfModel = ModelFactory.createInfModel(OWLReasoner, model)
 
-  val x = model.listSubjects()
-
-  println("AAAAA")
-
-
-/*
-  val queryString = "PREFIX family: <http://example.org/family#> " +
-    "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
-    "SELECT ?s ?o WHERE { ?s family:hasChild ?o .}"
-*/
-
-  val queryString = "PREFIX family: <http://example.org/family#> " +
-    "PREFIX foaf: <http://xmlns.com/foaf/0.1/> " +
-    "SELECT ?o (COUNT(*) as ?count) " +
-    "WHERE {?s family:hasParent ?o}" +
-    "GROUP BY ?o"
-
-
-  val query = QueryFactory.create(queryString)
-  try {
-    val qexec = QueryExecutionFactory.create(query, infModel)
-    try {
-      val results : ResultSet = qexec.execSelect
-
-      while (results.hasNext) {
-        val soln : QuerySolution = results.nextSolution
-        val x = soln.getResource("o")
-        val r = soln.get("count")
-        println(x + "  ---  " + r)
-      }
-    } finally if (qexec != null) qexec.close()
-  }
-
-
-  println("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-
-
-  val queryTest = createSelectAllTriplesQuery("http://example.org/family#hasParent", "http://example.org/data#Mary")
-  println(queryTest)
-
-  val list = execQuery(queryTest, infModel)
-  list.foreach(qs => println(qs))
-
-
-  println("-----------------------AGGREGATION")
-
-  val queryAgg = createAggregationQuery("http://example.org/family#hasParent")
-  println(queryAgg)
-
-  val listAgg = execQuery(queryAgg, infModel)
-  listAgg.foreach(qs => println(qs.get("sensitiveAttribute") + " -- " + qs.get("count")))
-
-
-  println("----------------------")
-
-  println(createInsertQueryString("pred", 1, 1, listAgg.head))
-
-  println("\n" + createDeleteQueryString("pred", 1))
-
-  println("------------------------------")
-
-  val ll = anatomisationAlgoUnitary("http://example.org/family#hasParent", infModel, 0)
+  val ll = anatomisationAlgoUnitary("http://example.org/family#hasChild", infModel, 0)
 
   ll.foreach(x => println(x+ "\n"))
 }

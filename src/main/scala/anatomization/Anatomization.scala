@@ -17,16 +17,12 @@ object Anatomization {
   }
 
 
-  def createSelectAllTriplesQuery(predicate: String, sensibleAttribute: String): Query = {
-    val queryString =
-      "SELECT * " +
-      "WHERE { ?s ?p ?o ." +
-      "FILTER(?p = <" + predicate + ">) ." +
-      "FILTER(?o =  <" + sensibleAttribute + ">) }"
-    QueryFactory.create(queryString)
-  }
-
-
+  /** Utility method used to execute a query on top of a given model
+    *
+    * @param query the query to be executed
+    * @param model the model on which the query will be executed
+    * @return a list containing the solutions for the query
+    */
   def execQuery(query: Query, model: Model): ListBuffer[QuerySolution] = {
     val solutionsList = ListBuffer[QuerySolution]()
     try {
@@ -48,14 +44,6 @@ object Anatomization {
     val URIInGroup = predicate + "/InGroup"
     val URIGroupId = s"Group${groupID}"
 
-    /*
-    val deleteClause = "DELETE { " + subject + " " + predicate + " " + obj + "}"
-    val insertClause = "INSERT { " + subject + " " + URIInGroup + " " + URIGroupId + "}"
-    val whereClause = "WHERE { " + subject + " " + predicate + " " + obj + "}"
-
-    deleteClause + "\n" + insertClause + "\n" + whereClause
-    */
-
     s"""DELETE { ?s $predicate ?o }
        |INSERT { ?s $URIInGroup $URIGroupId }
        |WHERE { ?s $predicate ?o }""".stripMargin
@@ -74,6 +62,13 @@ object Anatomization {
   }
 
 
+  /**
+    * Computes the list of operations to execute in order to apply the anatomisation algorithm
+    * @param predicate the predicate which links a resource to a sensitive attribute
+    * @param model the model we want to anonymize
+    * @param groupID the starting group ID
+    * @return a list of operations to execute in order to apply the anatomisation algorithm
+    */
   def anatomisationAlgoUnitary(predicate : String, model : Model, groupID : Int) : ListBuffer[String] = {
 
     val ops = ListBuffer[String]()
@@ -82,8 +77,6 @@ object Anatomization {
     var attributeID = 0
     ops.append(createDeleteQueryString(predicate, groupID))
     aggQueryResults.foreach(aqr => {
-      //val allTriplesQuery = createSelectAllTriplesQuery(predicate, aqr.get("sensitiveAttribute").toString)
-      //val triplesResults = execQuery(allTriplesQuery, model)
       ops.append(createInsertQueryString(predicate, groupID, attributeID, aqr))
       attributeID += 1
     })

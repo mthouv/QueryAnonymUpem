@@ -4,7 +4,7 @@ import org.apache.jena.query.Query
 import org.apache.jena.sparql.core.{TriplePath, Var}
 
 import scala.collection.mutable.ListBuffer
-import utils.QueryUtils.{checkObject, checkSubject, createDeleteObjectOperationStr, createDeleteSubjectOperationStr, createDeleteTripleOperationStr, getTriplesFromPolicy, getTriplesFromQuery}
+import utils.QueryUtils.{getTriplesFromPolicy, getTriplesFromQuery}
 
 object Anonymization {
 
@@ -65,8 +65,8 @@ object Anonymization {
         val possibleOperations = findPossibleOperations(triple, privacyTriples, utilityTriples, projectedVars)
 
         possibleOperations match {
-          case None => findCandidatesUnitaryPolicyAux(next, utilityTriples, projectedVars, acc)
-          case Some(ops) => findCandidatesUnitaryPolicyAux(next, utilityTriples, projectedVars, ops ::: acc)
+          case Nil => findCandidatesUnitaryPolicyAux(next, utilityTriples, projectedVars, acc)
+          case ops => findCandidatesUnitaryPolicyAux(next, utilityTriples, projectedVars, ops ::: acc)
         }
       }
       case Nil => acc
@@ -83,9 +83,9 @@ object Anonymization {
     * @return a list of possible anonymization operations (their string representation)
     */
   def findPossibleOperations(triple: TriplePath, privacyTriples : List[TriplePath], utilityTriples: List[TriplePath],
-                             projectedVars : List[Var]) : Option[List[String]] = {
+                             projectedVars : List[Var]) : List[String] = {
 
-    if (utilityTriples.contains(triple)) None
+    if (utilityTriples.contains(triple)) List()
     else {
       val isSubjectDeletionPossible = checkSubject(triple, privacyTriples) || projectedVars.contains(triple.getSubject)
       val isObjectDeletionPossible = triple.getObject.isURI && checkObject(triple, privacyTriples) || projectedVars.contains(triple.getObject)
@@ -97,7 +97,7 @@ object Anonymization {
           case (false, true) => List[String](createDeleteObjectOperationStr(triple, privacyTriples))
           case _ => List()
         }
-      return Some(createDeleteTripleOperationStr(triple, privacyTriples) :: ops)
+      return createDeleteTripleOperationStr(triple, privacyTriples) :: ops
     }
   }
 
@@ -109,7 +109,7 @@ object Anonymization {
     * @return the string representation of a deletion query
     */
   def createDeleteTripleOperationStr(triple : TriplePath, privacyTriples : List[TriplePath]) : String = {
-    return "Delete " + triple.toString + " WHERE " + privacyTriples.toString().replace("ListBuffer", "")
+    return "Delete " + triple.toString + " WHERE " + privacyTriples.toString().replace("List", "")
   }
 
 
@@ -120,7 +120,7 @@ object Anonymization {
     * @return the string representation of a subject deletion query
     */
   def createDeleteSubjectOperationStr(triple : TriplePath, privacyTriples : List[TriplePath]) : String = {
-    "Delete " + triple.toString + " INSERT {[], " + triple.getPredicate + ", " + triple.getObject + "} WHERE " + privacyTriples.toString().replace("ListBuffer", "")
+    "Delete " + triple.toString + " INSERT {[], " + triple.getPredicate + ", " + triple.getObject + "} WHERE " + privacyTriples.toString().replace("List", "")
   }
 
 
@@ -131,7 +131,7 @@ object Anonymization {
     * @return the string representation of an object deletion query
     */
   def createDeleteObjectOperationStr(triple : TriplePath, privacyTriples : List[TriplePath]) : String = {
-    "Delete " + triple.toString +  " INSERT {" + triple.getSubject + ", " + triple.getPredicate + ", []} WHERE " + privacyTriples.toString().replace("ListBuffer", "")
+    "Delete " + triple.toString +  " INSERT {" + triple.getSubject + ", " + triple.getPredicate + ", []} WHERE " + privacyTriples.toString().replace("List", "")
   }
 
 
